@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>vue-front/bms-front.html</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <!-- Include Vue -->
+    <script src="https://unpkg.com/vue@next"></script>
+    <!-- Include Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            margin: 50px;
+        }
+        table {
+            margin: 50px;
+        }
+    </style>
+</head>
+    
+<body>
+
+<div id="targetElement" class="container">
+
+    <!-- Search Field -->
+    <div class="row">Search:</div>
+
+    <input type="text" class="form-control" v-model="filterText" @click="cancel">
+
+    <!-- Add Book Button -->
+    <div class="row">
+        <button @click="showAddBookForm" class="btn btn-light">Add New Book</button>
+    </div>
+    <!-- Add Book Form -->
+    <form v-if="showAddForm" @submit.prevent="addBook">
+        <div class="form-group">
+            <label for="isbn">ISBN:</label>
+            <input type="text" id="isbn" v-model="newBook.isbn" class="form-control" required pattern="^\d{3}-\d{1,5}-\d{1,7}-\d{1}$">
+        </div>
+        <div class="form-group">
+            <label for="title">Title:</label>
+            <input type="text" id="title" v-model="newBook.title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="authors">Authors (comma-separated):</label>
+            <input type="text" id="authors" v-model="newBook.authors" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="year">Year:</label>
+            <input type="text" id="year" v-model="newBook.year" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Book</button>
+        <button type="button" @click="cancel" class="btn btn-secondary">Cancel</button>
+    </form>
+
+    <!-- Update Book Form -->
+    <form v-if="showUpdateForm" @submit.prevent="updateBook">
+        <div class="form-group">
+            <label for="update-isbn">ISBN:</label>
+            <input type="text" id="update-isbn" v-model="selectedBook.isbn" class="form-control" readonly>
+        </div>
+        <div class="form-group">
+            <label for="update-title">Title:</label>
+            <input type="text" id="update-title" v-model="selectedBook.title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="update-authors">Authors (comma-separated):</label>
+            <input type="text" id="update-authors" v-model="selectedBook.authors" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="update-year">Year:</label>
+            <input type="text" id="update-year" v-model="selectedBook.year" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+        <button type="button" @click="cancel" class="btn btn-secondary">Cancel</button>
+    </form>
+
+    <!-- Table displaying books -->
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th><a href="#" @click="changeSortParam('isbn')">ISBN</a></th>
+            <th><a href="#" @click="changeSortParam('title')">Title</a></th>
+            <th><a href="#" @click="changeSortParam('authors')">Authors</a></th>
+            <th><a href="#" @click="changeSortParam('year')">Year</a></th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr v-for="book in filteredBooks">
+
+            <td @click="selectBook(book)">{{ book.isbn }}</td>
+            <td @click="selectBook(book)">{{ book.title }}</td>
+            <td @click="selectBook(book)">{{ book.authors.join(', ') }}</td>
+            <td @click="selectBook(book)">{{ book.year }}</td>
+            <td>
+                <!-- <button @click="selectBook(book)">Select</button> -->
+                <button v-if="selectedBook === book" @click="showUpdateBookForm" class="btn btn-primary">Update</button>
+                <button v-if="selectedBook === book" @click="deleteBook(book)" class="btn btn-danger">Delete</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+var vm = Vue.createApp({
+    data: function() {
+        return {
+            sortparam: 'isbn',
+            filterText: '',
+            order: 1,
+            books: [],
+            showAddForm: false, // Flag to show/hide the add book form
+            showUpdateForm: false, // Flag to show/hide the update book form
+            newBook: {
+                isbn: '',
+                title: '',
+                authors: '',
+                year: ''
+            },
+            selectedBook: null
+        };
+    },
+    created: function() {
+        // Fetch the list of books from the server when the component is created
+        this.fetchBooks();
+    },
+    computed: {
+        filteredBooks: function() {
+            return this.books
+                .filter(book => {
+                    const filterTextLower = this.filterText.toLowerCase();
+                    return (
+                        book.title.toLowerCase().includes(filterTextLower) ||
+                        book.isbn.includes(filterTextLower) ||
+                        book.authors.some(author => author.toLowerCase().includes(filterTextLower))
+                    );
+                })
+                .sort((a, b) => {
+                    if (a[this.sortparam] < b[this.sortparam]) {
+                        return -1 * this.order;
+                    }
+                    if (a[this.sortparam] > b[this.sortparam]) {
+                        return 1 * this.order;
+                    }
+                    return 0;
+                });
+        }
+    },
+    methods: {
+        changeSortParam: function(sortParam) {
+            this.sortparam = sortParam;
+            this.order = this.order * -1;
+        },
+        showAddBookForm: function() {
+            this.showAddForm = true;
+            this.showUpdateForm = false;
+            this.selectedBook = null;
+        },
+        fetchBooks: function() {
+            // Send a GET request to the server to fetch the list of books
+            axios.get('http://localhost:8080/books')
+                .then(response => {
+                    // Update the 'books' data property with the fetched data
+                    this.books = response.data;
+                })
+                .catch(error => {
+                    console.error('Error fetching books:', error);
+                });
+        },
+        addBook: function() {
+            // Split authors by comma and trim whitespace to create an array
+            this.newBook.authors = this.newBook.authors.split(',').map(author => author.trim());
+
+            // Send a POST request to the server to add a new book
+            axios.post('http://localhost:8080/books/new', this.newBook)
+                .then(response => {
+                    // Reset the form and hide it
+                    this.newBook = {
+                        isbn: '',
+                        title: '',
+                        authors: '',
+                        year: ''
+                    };
+                    this.showAddForm = false;
+
+                    // Fetch the updated list of books
+                    this.fetchBooks();
+                })
+                .catch(error => {
+                    console.error('Error adding book:', error);
+                });
+        },
+        selectBook: function(book) {
+            this.selectedBook = book;
+            this.showAddForm = false;
+        },
+        deleteBook: function(book) {
+
+            // Send a DELETE request to the server to delete the book
+            axios.delete('http://localhost:8080/books/' + book.isbn)
+                .then(response => {
+                    // Fetch the updated list of books
+                    this.fetchBooks();
+                })
+                .catch(error => {
+                    console.error('Error deleting book:', error);
+                });
+        },
+        showUpdateBookForm: function() {
+            this.showUpdateForm = true;
+            this.showAddForm = false;
+        },
+        updateBook: function() {
+            // Split authors by comma and trim whitespace to create an array
+            this.selectedBook.authors = this.selectedBook.authors.split(',').map(author => author.trim());
+
+            // Send a PUT request to the server to update the book
+            axios.put('http://localhost:8080/books/' + this.selectedBook.isbn, this.selectedBook)
+                .then(response => {
+                    // Reset the form and hide it
+                    this.showUpdateForm = false;
+                    this.selectedBook = null;
+
+                    // Fetch the updated list of books
+                    this.fetchBooks();
+                })
+                .catch(error => {
+                    console.error('Error updating book:', error);
+                });
+        },
+        cancel : function() {
+            this.selectedBook = null;
+            this.showUpdateForm = false;
+            this.showAddForm = false;
+        }
+    }
+}).mount('#targetElement');
+</script>
+
+     
+</body>
+</html>
