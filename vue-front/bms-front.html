@@ -92,7 +92,7 @@
 
             <td @click="selectBook(book)">{{ book.isbn }}</td>
             <td @click="selectBook(book)">{{ book.title }}</td>
-            <td @click="selectBook(book)">{{ book.authors.join(', ') }}</td>
+            <td @click="selectBook(book)">{{ Array.isArray(book.authors) ? book.authors.join(', ') : book.authors }}</td>
             <td @click="selectBook(book)">{{ book.year }}</td>
             <td>
                 <!-- <button @click="selectBook(book)">Select</button> -->
@@ -215,7 +215,9 @@ var vm = Vue.createApp({
         },
         updateBook: function() {
             // Split authors by comma and trim whitespace to create an array
-            this.selectedBook.authors = this.selectedBook.authors.split(',').map(author => author.trim());
+            if (typeof this.selectedBook.authors === 'string') {
+                this.selectedBook.authors = this.selectedBook.authors.split(',').map(author => author.trim());
+            }
 
             // Send a PUT request to the server to update the book
             axios.put('http://localhost:8080/books/' + this.selectedBook.isbn, this.selectedBook)
@@ -235,6 +237,8 @@ var vm = Vue.createApp({
             this.selectedBook = null;
             this.showUpdateForm = false;
             this.showAddForm = false;
+
+            this.fetchBooks();
         }
     }
 }).mount('#targetElement');
