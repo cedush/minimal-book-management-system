@@ -18,13 +18,13 @@ public class BmsApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 
-		Book book1 = new Book("978-144-4720730", "The Stand", List.of("Stephen King"), 2011);
+		Book book1 = new Book("978-1-4447-2073-0", "The Stand", List.of("Stephen King"), 2011);
 		BookService.addBook(book1);
-		Book book2 = new Book("978-144-4707861", "It", List.of("Stephen King"), 2011);
+		Book book2 = new Book("978-1-4447-0786-1", "It", List.of("Stephen King"), 2011);
 		BookService.addBook(book2);
-		Book book3 = new Book("978-034-9440262", "Iron Flame", List.of("Rebecca Yarros"), 2023);
+		Book book3 = new Book("978-0-349-43703-3", "Iron Flame", List.of("Rebecca Yarros"), 2023);
 		BookService.addBook(book3);
-		Book book4 = new Book("978-311-0443752", "Datenbanksysteme", List.of("Alfons Kemper", "Andre Eickler"), 2015);
+		Book book4 = new Book("978-3-11-044375-2", "Datenbanksysteme", List.of("Alfons Kemper", "Andre Eickler"), 2015);
 		BookService.addBook(book4);
 	}
 }
